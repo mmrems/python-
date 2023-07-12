@@ -1,0 +1,65 @@
+import os
+import re
+
+#re正则库
+
+#定义获取index.html时间函数
+def get_time_from_index_html(directory):
+    #拼接指定目录的上一级目录
+    index_html_path = os.path.join(directory,"..","index.html")
+
+    #打开index文件存到f变量里，read读取内容返回给content
+    with open(index_html_path,"r",encoding="utf-8") as f:
+        content = f.read()
+
+    #正则查找index文件开始时间和结束时间
+    #.任意除了换行符\n之外任意单个字符，*匹配前面字符一次或多次，？非贪婪模式，如果多个相同的尽量匹配少的
+    start_time_match = re.search(r"开始：(.*?)<br />",content)
+    end_time_match = re.search(r"结束：(.*?)</td>",content)
+
+    #group（1）返回匹配到的捕获组（第一个括号里的正则），返回两个时间的元组
+    if start_time_match and end_time_match:
+        start_time = start_time_match.group(1)
+        end_time = end_time_match.group(1)
+        return start_time , end_time
+    else:
+        return None, None
+
+#定义时间替换函数
+def replace_html_time(directory):
+    #获取时间元组
+    start_time, end_time = get_time_from_index_html(directory)
+
+    if start_time is None or end_time is None:
+        print("无法提取起始时间和结束时间")
+        return
+
+    #os.walk 函数遍历指定目录 directory 中的所有文件和子目录。
+    #os.walk 函数返回一个生成器（Generator），用于递归地遍历指定目录下的文件和子目录。它返回的三个值 root、dirs 和 files 分别表示当前遍历到的目录路径、子目录列表和文件列表。
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            #遍历所有html结尾的文件
+            if file.endswith(".html"):
+                #拼接文件完整路径，只读（r）打开文件，文件对象f调用read方法读取文件内容并赋给变量content
+                file_path = os.path.join(root, file)
+                with open(file_path,"r",encoding="utf-8") as f:
+                      content = f.read()
+            #正则匹配遍历的文件替换index文件的时间存给变量content
+            #sub方法替换,r原始字符串，f格式化字符串，可以插入变量
+            content = re.sub(r"<th>扫描起始时间</th>\n\t\t\t\t<td>.*?</td>",f"<th>扫描起始时间</th>\n\t\t\t\t<td>{start_time}</td>",content)
+            content = re.sub(r"<th>扫描结束时间</th>\n\t\t\t\t<td>.*?</td>",f"<th>扫描结束时间</th>\n\t\t\t\t<td>{end_time}</td>",content)
+            #写入模式打开文件，write方法替换修改后的内容
+            with open(file_path,"w",encoding="utf-8") as f:
+                  f.write(content)
+            print(f"已替换文件：{file_path}")
+
+#指定的目录
+directory_path = ""
+
+replace_html_time(directory_path)
+
+
+
+
+
+
